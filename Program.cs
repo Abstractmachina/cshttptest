@@ -6,6 +6,8 @@ using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 
+using System.Drawing;
+
 namespace MyApp // Note: actual namespace depends on the project name.
 {
     internal class Program
@@ -19,27 +21,46 @@ namespace MyApp // Note: actual namespace depends on the project name.
 
 
 
-        public class ResponseArtefact {
-            public List<ResponseObject>? artifacts{get;set;}
-        }
+    public class ResponseArtefact {
+        public List<ResponseObject>? artifacts{get;set;}
+    }
 
-        public class ResponseObject {
-            [JsonProperty("base64")]
-            public string? Base64 {get;set;}
-            [JsonProperty("finishReason")]
-            public string? FinishReason {get; set;} 
-            [JsonProperty("seed")]
-            public Int64? Seed {get;set;}
-        }
+    public class ResponseObject {
+        [JsonProperty("base64")]
+        public string? Base64 {get;set;}
+        [JsonProperty("finishReason")]
+        public string? FinishReason {get; set;} 
+        [JsonProperty("seed")]
+        public Int64? Seed {get;set;}
+    }
+
+
 
     public class ImagePrompter
     {
+        
+        private static Image FromBase64String(string input) {
+            //data:image/gif;base64,
+            //this image is a single pixel (black)
+            byte[] bytes = Convert.FromBase64String(input);
+
+            Image image;
+            using (MemoryStream ms = new MemoryStream(bytes))
+            {
+                image = Image.FromStream(ms);
+            }
+
+            return image;
+        }
 
         public static void ResultFromText(string path) {
             string contents = File.ReadAllText(path);
             // Console.WriteLine(contents);
             var converted = JsonConvert.DeserializeObject<ResponseArtefact>(contents);
             Console.WriteLine(converted.artifacts[0].Seed);
+
+            var image = ImagePrompter.FromBase64String(converted.artifacts[0].Base64);
+            image.Save(@"./output/test1.jpg");
 
         }
 
