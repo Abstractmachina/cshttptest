@@ -4,8 +4,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Linq;
 using System.Net.Http.Headers;
-
-
+using System.Text;
 
 namespace MyApp // Note: actual namespace depends on the project name.
 {
@@ -13,17 +12,91 @@ namespace MyApp // Note: actual namespace depends on the project name.
     {
         static async Task Main(string[] args)
         {
-            await ImagePrompter.T2I_prompt();
+            // await ImagePrompter.DS_T2I_prompt();
+            ImagePrompter.ResultFromText(@"./output/test1.txt");
         }
     }
 
 
 
+        public class ResponseArtefact {
+            public List<ResponseObject>? artifacts{get;set;}
+        }
 
-
+        public class ResponseObject {
+            [JsonProperty("base64")]
+            public string? Base64 {get;set;}
+            [JsonProperty("finishReason")]
+            public string? FinishReason {get; set;} 
+            [JsonProperty("seed")]
+            public Int64? Seed {get;set;}
+        }
 
     public class ImagePrompter
     {
+
+        public static void ResultFromText(string path) {
+            string contents = File.ReadAllText(path);
+            // Console.WriteLine(contents);
+            var converted = JsonConvert.DeserializeObject<ResponseArtefact>(contents);
+            Console.WriteLine(converted.artifacts[0].Seed);
+
+        }
+
+        public static async Task DS_T2I_prompt() {
+            using (HttpClient client = new()) {
+                try {
+                    DotNetEnv.Env.Load();
+                    string apiKey = Environment.GetEnvironmentVariable("DREAMSTUDIO_KEY");
+                    // client.DefaultRequestHeaders.Add("Authorizations", apiKey);                
+                    if (apiKey == null) throw new Exception("Missing Stability API key.");
+
+                    var newReqBody = new ReqBody(
+                        new List<TextPrompt>{
+                            new TextPrompt("star-shaped, red apple", 0.5f)
+                        },
+                        512, 512
+                    );
+
+                    var settings = new JsonSerializerSettings
+                    {
+                        Converters = { new T2IJsonConverter() }
+                    };
+
+                    var request = new HttpRequestMessage(HttpMethod.Post, "https://api.stability.ai/v1/generation/stable-diffusion-v1-5/text-to-image");
+                    request.Headers.Add("Authorization", apiKey);
+                    request.Content = new StringContent(JsonConvert.SerializeObject(newReqBody, settings));
+                    request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                    var response = await client.SendAsync(request);
+                    var result = await response.Content.ReadAsStringAsync();
+
+                    string path = @"./output/test1.txt";
+                    // Util.SaveStringToFile(result, path);
+
+                    return;
+                    var responseObject = JsonConvert.DeserializeObject<ResponseArtefact>(result);
+                    // Console.WriteLine(responseObject.finishReason);
+                    // Console.WriteLine(responseObject.seed);
+                    if(responseObject == null) throw new Exception("API request failed. ResponseObject is null");
+                    // var rr = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseObject.artifacts[0]);
+                    // foreach(KeyValuePair<string, object>pair in rr) {
+                    //     Console.WriteLine(pair.Key);
+                    //     Console.WriteLine(pair.Value);
+                    // }
+                    // Console.WriteLine(responseObject.artifacts.Count);
+                    // foreach (var v in responseObject.artifacts)
+                    // Console.WriteLine(v);
+                    // foreach(KeyValuePair<string, object>item in responseObject) Console.WriteLine(item.Key.GetType());
+                    return;
+
+
+                } catch (Exception e) {
+                    Console.WriteLine(e.ToString());
+                }
+            }
+        }
+
 
         public static async Task T2I_prompt()
         {
@@ -71,6 +144,47 @@ namespace MyApp // Note: actual namespace depends on the project name.
                     Console.WriteLine(err.ToString());
                 }
             }
+        }
+    }
+
+    public class ReqBody {
+        public int Height {get;set;}
+        public int Width {get;set;}
+        public List<TextPrompt> Text_prompts {get;set;}
+        // public float Cfg_scale {get;set;}
+        // public string Clip_guidance_preset {get;set;}
+        // public string Sampler {get;set;}
+        // public int Samples {get;set;}
+        // public int Seed {get;set;}
+        // public int Steps {get;set;}
+        // public string Style_presets {get;set;}
+
+        public ReqBody(List<TextPrompt> textPrompts, int height, int width) {
+            Text_prompts = textPrompts;
+            Height = height;
+            Width = width;
+        }
+
+        public override string ToString()
+        {
+            string output = "ReqBody Object:\n";
+            output += $"\tHeight: {Height}\n";
+            output += $"\tWidth: {Width}\n";
+            output+= "\tText Prompts:\n";
+            foreach (var tp in Text_prompts) {
+                output+= $"\t\tText: '{tp.Text}', Weight: {tp.Weight}\n";
+            }
+            return output;
+        }
+    }
+
+    public class TextPrompt {
+        public string Text {get;set;}
+        public float Weight {get;set;}
+
+        public TextPrompt(string text, float weight) {
+            Text = text;
+            Weight = weight;
         }
     }
 
@@ -139,58 +253,6 @@ namespace MyApp // Note: actual namespace depends on the project name.
             Track_id = track_id;
         }
     }
-
-
-    class CustomContractResolver : DefaultContractResolver
-    {
-        protected override string ResolvePropertyName(string propertyName)
-        {
-            return propertyName.ToLower();
-        }
-
-    }
-
-    class T2IJsonConverter : JsonConverter
-    {
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            var prompt = (TextToImagePrompt)value;
-            var jsonObject = new JObject();
-            var contractResolver = serializer.ContractResolver as DefaultContractResolver;
-
-            // Serialize properties
-            foreach (var property in value.GetType().GetProperties())
-            {
-                var propertyName = contractResolver != null ? contractResolver.GetResolvedPropertyName(property.Name) : property.Name;
-                var propertyValue = property.GetValue(value);
-                if (propertyValue == null)
-                {
-                    jsonObject.Add(propertyName.ToLower(), JValue.CreateNull());
-                }
-                else if (propertyValue is bool)
-                {
-                    jsonObject.Add(propertyName.ToLower(),
-                    ((bool)propertyValue == true) ? "yes" : "no");
-
-                }
-                else
-                {
-                    jsonObject.Add(propertyName.ToLower(), JToken.FromObject(propertyValue));
-                }
-            }
-            jsonObject.WriteTo(writer);
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override bool CanRead => false;
-
-        public override bool CanConvert(Type objectType)
-        {
-            return objectType == typeof(TextToImagePrompt);
-        }
-    }
 }
+
+    
