@@ -5,6 +5,13 @@ using Newtonsoft.Json.Serialization;
 namespace MyApp
 {
 
+    // public static class Convert {
+    //     public static string toBase64(string path) {
+    //         byte[] imageArray = System.IO.File.ReadAllBytes(@path);
+    //         string base64ImageRepresentation = Convert.toBase64(path);
+    //     }
+    // }
+
     class CustomContractResolver : DefaultContractResolver
     {
         protected override string ResolvePropertyName(string propertyName)
