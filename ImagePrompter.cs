@@ -9,56 +9,17 @@ namespace MyApp
 {
     public class ImagePrompter
     {
-        // private static Image FromBase64String(string input)
-        // {
-        //     //data:image/gif;base64,
-        //     //this image is a single pixel (black)
-        //     byte[] bytes = Convert.FromBase64String(input);
-
-        //     Image image;
-        //     using (MemoryStream ms = new MemoryStream(bytes))
-        //     {
-        //         image = Image.FromStream(ms);
-        //     }
-
-        //     return image;
-        // }
-
-        // public static void ResultFromText(string path)
-        // {
-        //     string contents = File.ReadAllText(path);
-        //     // Console.WriteLine(contents);
-        //     var converted = JsonConvert.DeserializeObject<ResponseArtefact>(contents);
-        //     Console.WriteLine(converted.artifacts[0].Seed);
-
-        //     var image = ImagePrompter.FromBase64String(converted.artifacts[0].Base64);
-        //     image.Save(@"./output/test1.jpg");
-
-        // }
-
-
-
-
-
+        
         public static async Task<string> Auto1111_T2I(string address, string username, string password, Payload payload) {
             using (HttpClient client = new())
             {
-                try
-                {
-                    // var settings = new JsonSerializerSettings
-                    // {
-                    //     Converters = { new T2IJsonConverter() }
-                    // };
+                    Console.WriteLine("... Attempting to send POST request /sdapi/v1/txt2img");
                     string endpoint = address + "/sdapi/v1/txt2img";
-                    Console.WriteLine(endpoint);
 
                     var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
-                    // request.Headers.Add("Authorization", apiKey);
 
                     var json = JsonConvert.SerializeObject(payload);
-                    Console.WriteLine(json);
                     request.Content = new StringContent(json);
-                    // request.Content = new StringContent(JsonConvert.SerializeObject(newReqBody, settings));
                     
                     request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
@@ -66,21 +27,10 @@ namespace MyApp
                     Console.WriteLine(response.StatusCode);
                     var result = await response.Content.ReadAsStringAsync();
 
-                    Console.WriteLine("results coming in ....");
-                    Console.WriteLine(result);
+                    Console.WriteLine("... results coming in ....");
 
-                    string path = @"./output/test1.txt";
-                    // Util.SaveStringToFile(result, path);
 
                     return result;
-
-
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.ToString());
-                    return "";
-                }
             }
         }
         
@@ -126,10 +76,10 @@ namespace MyApp
                     // Util.SaveStringToFile(result, path);
 
                     return;
-                    var responseObject = JsonConvert.DeserializeObject<ResponseArtefact>(result);
+                    // var responseObject = JsonConvert.DeserializeObject<ResponseArtefact>(result);
                     // Console.WriteLine(responseObject.finishReason);
                     // Console.WriteLine(responseObject.seed);
-                    if (responseObject == null) throw new Exception("API request failed. ResponseObject is null");
+                    // if (responseObject == null) throw new Exception("API request failed. ResponseObject is null");
                     // var rr = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseObject.artifacts[0]);
                     // foreach(KeyValuePair<string, object>pair in rr) {
                     //     Console.WriteLine(pair.Key);
@@ -204,20 +154,20 @@ namespace MyApp
         }
     }
 
-    public class ResponseArtefact
-    {
-        public List<ResponseObject>? artifacts { get; set; }
-    }
+    // public class ResponseArtefact
+    // {
+    //     public List<ResponseObject>? artifacts { get; set; }
+    // }
 
-    public class ResponseObject
-    {
-        [JsonProperty("base64")]
-        public string? Base64 { get; set; }
-        [JsonProperty("finishReason")]
-        public string? FinishReason { get; set; }
-        [JsonProperty("seed")]
-        public Int64? Seed { get; set; }
-    }
+    // public class ResponseObject
+    // {
+    //     [JsonProperty("base64")]
+    //     public string? Base64 { get; set; }
+    //     [JsonProperty("finishReason")]
+    //     public string? FinishReason { get; set; }
+    //     [JsonProperty("seed")]
+    //     public Int64? Seed { get; set; }
+    // }
 
     public class ReqBody
     {

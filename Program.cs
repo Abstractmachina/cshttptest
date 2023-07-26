@@ -7,7 +7,7 @@ namespace MyApp // Note: actual namespace depends on the project name.
         static async Task Main(string[] args)
         {
             try{
-                string address = "https://ebaf54c2744fdd214f.gradio.live";
+                string address = "https://d8e9eed473eb27af40.gradio.live";
 
                 // load up authentication credentials
                 DotNetEnv.Env.Load();
@@ -25,11 +25,34 @@ namespace MyApp // Note: actual namespace depends on the project name.
 
                 var result = await ImagePrompter.Auto1111_T2I(address, username, password, payload);
 
+                var responseObject = JsonConvert.DeserializeObject<ResponseObject>(result);
+
+                // Console.WriteLine(responseObject.Images.Select(x => Console.WriteLine(x));
+                if (responseObject != null) {
+                    for (int i = 0; i < responseObject.Images.Count; i++)
+                    {
+                        var image = Util.FromBase64String(responseObject.Images[i]);
+                        var date = DateTime.Now.ToString("yymmdd-hhmmss");
+                        string path = String.Format("./output/{0}", date);
+                        System.IO.Directory.CreateDirectory(path);
+                        image.Save(path + String.Format("/img{0}.png", i), System.Drawing.Imaging.ImageFormat.Png);
+                    }
+                }
+                
             } catch (Exception e) {
                 Console.WriteLine(e.ToString());
             }
 
             // ImagePrompter.ResultFromText(@"./output/test1.txt");
+        }
+    }
+
+    internal class ResponseObject {
+        [JsonProperty("images")]
+        public List<string> Images {get; set;}
+        [JsonProperty("info")]
+        public string Info {get; set;}
+        public ResponseObject() {
         }
     }
 }

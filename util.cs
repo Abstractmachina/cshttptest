@@ -1,4 +1,5 @@
 
+using System.Drawing;
 using System.Text;
 
 namespace MyApp
@@ -16,6 +17,26 @@ namespace MyApp
                     fs.Write(data, 0, data.Length);
             }
 
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input">base64 string</param>
+        /// <returns></returns>
+        public static Image FromBase64String(string input)
+        {
+            //data:image/gif;base64,
+            //this image is a single pixel (black)
+            byte[] bytes = Convert.FromBase64String(input);
+
+            Image image;
+            using (MemoryStream ms = new MemoryStream(bytes))
+            {
+                image = Image.FromStream(ms);
+            }
+
+            return image;
         }
 
     }
