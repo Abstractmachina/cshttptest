@@ -7,7 +7,9 @@ namespace MyApp // Note: actual namespace depends on the project name.
         static async Task Main(string[] args)
         {
             try{
-                string address = "https://d8e9eed473eb27af40.gradio.live";
+                // string address = "https://d8e9eed473eb27af40.gradio.live";
+                string address = "http://127.0.0.1:7860";
+                
 
                 // load up authentication credentials
                 DotNetEnv.Env.Load();
@@ -23,21 +25,23 @@ namespace MyApp // Note: actual namespace depends on the project name.
 
                 var payload = new Payload("3d printing clay, layer, toolpath", "bad, worse, low quality, strange, ugly", 20, 7, 598, 624, new AlwaysOnScripts(ControlNetSettingsFactory.Create("control_v11p_sd15_scribble [d4ba51ff]", "scribble_hed", scribble)));
 
-                var result = await ImagePrompter.Auto1111_T2I(address, username, password, payload);
+                // var result = await ImagePrompter.Auto1111_T2I(address, username, password, payload);
 
-                var responseObject = JsonConvert.DeserializeObject<ResponseObject>(result);
+                await ImagePrompter.GenerateAndPollImage(address, payload);
 
-                // Console.WriteLine(responseObject.Images.Select(x => Console.WriteLine(x));
-                if (responseObject != null) {
-                    for (int i = 0; i < responseObject.Images.Count; i++)
-                    {
-                        var image = Util.FromBase64String(responseObject.Images[i]);
-                        var date = DateTime.Now.ToString("yymmdd-hhmmss");
-                        string path = String.Format("./output/{0}", date);
-                        System.IO.Directory.CreateDirectory(path);
-                        image.Save(path + String.Format("/img{0}.png", i), System.Drawing.Imaging.ImageFormat.Png);
-                    }
-                }
+                // var responseObject = JsonConvert.DeserializeObject<ResponseObject>(result);
+
+                // // Console.WriteLine(responseObject.Images.Select(x => Console.WriteLine(x));
+                // if (responseObject != null) {
+                //     for (int i = 0; i < responseObject.Images.Count; i++)
+                //     {
+                //         var image = Util.FromBase64String(responseObject.Images[i]);
+                //         var date = DateTime.Now.ToString("yymmdd-hhmmss");
+                //         string path = String.Format("./output/{0}", date);
+                //         System.IO.Directory.CreateDirectory(path);
+                //         image.Save(path + String.Format("/img{0}.png", i), System.Drawing.Imaging.ImageFormat.Png);
+                //     }
+                // }
                 
             } catch (Exception e) {
                 Console.WriteLine(e.ToString());
@@ -53,6 +57,8 @@ namespace MyApp // Note: actual namespace depends on the project name.
         [JsonProperty("info")]
         public string Info {get; set;}
         public ResponseObject() {
+            Images = new List<string>();
+            Info = "";
         }
     }
 }

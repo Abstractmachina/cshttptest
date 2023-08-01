@@ -2,41 +2,141 @@ using System.Drawing;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System;
-
-
+using System.Net.Http;
 
 namespace MyApp
 {
     public class ImagePrompter
     {
-        
-        public static async Task<string> Auto1111_T2I(string address, string username, string password, Payload payload) {
+        private static async Task<string> Interrupt(string baseAddress, HttpClient client)
+        {
+            string uri = baseAddress + "/sdapi/v1/interrupt";
+
+            var response = await client.PostAsync("/sdapi/v1/skip", null);
+            // var requestMsg = new HttpRequestMessage(HttpMethod.Post, uri);
+            // var json = JsonConvert.SerializeObject(payload);
+            // requestMsg.Content = new StringContent(json);
+
+            // requestMsg.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+            // await client.SendAsync(requestMsg);
+            var responseMsg = await response.Content.ReadAsStringAsync();
+            return responseMsg;
+        }
+
+
+        public static async Task GenerateAndPollImage(string baseAddress, Payload payload)
+        {
             using (HttpClient client = new())
             {
-                    Console.WriteLine("... Attempting to send POST request /sdapi/v1/txt2img");
-                    string endpoint = address + "/sdapi/v1/txt2img";
+                try
+                {
+                    client.BaseAddress = new Uri(baseAddress);
+                    client.Timeout = Timeout.InfiniteTimeSpan;
 
-                    var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+                    // IApiHandler handler = new Auto1111Handler(client);
 
+                    var interruptStatus = await Interrupt(baseAddress, client);
+                    Console.WriteLine(interruptStatus);
+                    string uri = baseAddress + "/sdapi/v1/txt2img";
+
+                    var requestMsg = new HttpRequestMessage();
                     var json = JsonConvert.SerializeObject(payload);
-                    request.Content = new StringContent(json);
-                    
-                    request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
-                    var response = await client.SendAsync(request);
-                    Console.WriteLine(response.StatusCode);
-                    var result = await response.Content.ReadAsStringAsync();
+                    // requestMsg.Content = new StringContent(json);
 
-                    Console.WriteLine("... results coming in ....");
+                    // requestMsg.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
+                    Console.WriteLine("test");
+                    var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json") ;
 
-                    return result;
+                    var response = client.PostAsync("/sdapi/v1/txt2img", content);
+
+                    while (!response.IsCompleted)
+                    {
+                        Console.WriteLine("still in progress ...");
+
+                        string progressUri = baseAddress + "/sdapi/v1/progress";
+
+                        var progressResponse = await client.GetAsync(progressUri);
+                        progressResponse.EnsureSuccessStatusCode();
+
+                        string responseContent = await progressResponse.Content.ReadAsStringAsync();
+                        // Assuming the API returns a JSON response with a status field, parse it
+                        // and check if the status is "completed" or "error."
+                        var status = JsonConvert.DeserializeObject<ProgressStatus>(responseContent);
+                        // string status = ParseStatusFromApiResponse(responseContent);
+
+                        Console.WriteLine("Progress: " + status.Progress);
+                        Console.WriteLine("estimated eta: " + status.Eta);
+                        Console.WriteLine("Job: " + status.stateObject.Job);
+                        // if (status == "completed")
+                        // {
+                        //     // Image generation completed successfully
+                        //     string imageUrl = ParseImageUrlFromApiResponse(responseContent);
+                        //     Console.WriteLine($"Image generated successfully! Image URL: {imageUrl}");
+                        //     break;
+                        // }
+                        // else if (status == "error")
+                        // {
+                        //     // Image generation encountered an error
+                        //     string errorMessage = ParseErrorMessageFromApiResponse(responseContent);
+                        //     Console.WriteLine($"Error occurred during image generation: {errorMessage}");
+                        //     break;
+                        // }
+
+                        await Task.Delay(2000);
+                    }
+
+                    Console.WriteLine("Image generation finished ...");
+
+                    var result = await response.Result.Content.ReadAsStringAsync();
+
+                    Console.WriteLine(result);
+
+                    var resultObject = JsonConvert.DeserializeObject<ResponseObject>(result);
+
+                    // string jobId = await InitiateImageGenerationAsync();
+                    // Console.WriteLine($"Image generation started. Job ID: {jobId}");
+
+                    // await PollImageGenerationStatusAsync(jobId);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error: {ex.Message}");
+                }
+
             }
         }
-        
+
+        public static async Task<string> Auto1111_T2I(string address, Payload payload)
+        {
+            using (HttpClient client = new())
+            {
+                Console.WriteLine("... Attempting to send POST request /sdapi/v1/txt2img");
+                string endpoint = address + "/sdapi/v1/txt2img";
+
+                var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+
+                var json = JsonConvert.SerializeObject(payload);
+                request.Content = new StringContent(json);
+
+                request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                var response = await client.SendAsync(request);
+                Console.WriteLine(response.StatusCode);
+                var result = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine("... results coming in ....");
 
 
-        
+                return result;
+            }
+        }
+
+
+
+
         /// <summary>
         /// api call for stability ai's official api service. 
         /// </summary>
