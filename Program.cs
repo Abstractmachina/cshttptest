@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-
-namespace MyApp // Note: actual namespace depends on the project name.
+﻿namespace MyApp // Note: actual namespace depends on the project name.
 {
     internal class Program
     {
@@ -27,38 +25,26 @@ namespace MyApp // Note: actual namespace depends on the project name.
 
                 // var result = await ImagePrompter.Auto1111_T2I(address, username, password, payload);
 
-                await ImagePrompter.GenerateAndPollImage(address, payload);
+                var response = await ImagePrompter.Auto1111TextToImage(address, payload);
 
-                // var responseObject = JsonConvert.DeserializeObject<ResponseObject>(result);
-
+ 
                 // // Console.WriteLine(responseObject.Images.Select(x => Console.WriteLine(x));
-                // if (responseObject != null) {
-                //     for (int i = 0; i < responseObject.Images.Count; i++)
-                //     {
-                //         var image = Util.FromBase64String(responseObject.Images[i]);
-                //         var date = DateTime.Now.ToString("yymmdd-hhmmss");
-                //         string path = String.Format("./output/{0}", date);
-                //         System.IO.Directory.CreateDirectory(path);
-                //         image.Save(path + String.Format("/img{0}.png", i), System.Drawing.Imaging.ImageFormat.Png);
-                //     }
-                // }
+                if (response != null) {
+                    for (int i = 0; i < response.Images.Count; i++)
+                    {
+                        var image = Util.FromBase64String(response.Images[i]);
+                        var date = DateTime.Now.ToString("yymmdd-hhmmss");
+                        string path = String.Format("./output/{0}", date);
+                        System.IO.Directory.CreateDirectory(path);
+                        image.Save(path + String.Format("/img{0}.png", i), System.Drawing.Imaging.ImageFormat.Png);
+                    }
+                }
                 
             } catch (Exception e) {
                 Console.WriteLine(e.ToString());
             }
 
             // ImagePrompter.ResultFromText(@"./output/test1.txt");
-        }
-    }
-
-    internal class ResponseObject {
-        [JsonProperty("images")]
-        public List<string> Images {get; set;}
-        [JsonProperty("info")]
-        public string Info {get; set;}
-        public ResponseObject() {
-            Images = new List<string>();
-            Info = "";
         }
     }
 }
